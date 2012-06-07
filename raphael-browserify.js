@@ -4824,7 +4824,13 @@ Raphael.svg && function (R) {
         try {
             pos = cnvs.getScreenCTM() || cnvs.createSVGMatrix();
         } catch (e) {
-            pos = cnvs.createSVGMatrix();
+            // BROWSERIFY MOD: this will fail with jsdom since it's SVG 1.0,
+            // but in jsdom this whole function isn't needed anyways
+            try {
+                pos = cnvs.createSVGMatrix();
+            } catch (e) {
+                return;
+            }
         }
         var left = -pos.e % 1,
             top = -pos.f % 1;

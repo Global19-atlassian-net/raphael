@@ -9,6 +9,9 @@
   "devDependencies": {
     "browserify": "1.12.x"
   },
+  "scripts": {
+    "test": "node test-node.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/bpartridge/raphael.git"
