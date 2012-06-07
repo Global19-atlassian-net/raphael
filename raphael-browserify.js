@@ -1,25 +1,7 @@
 // Browserify modifications by Brenton Partridge, released into the public domain
 
 // BEGIN BROWSERIFY MOD
-var eve, Raphael;
-
-// In the browser, this shouldn't hurt anything.
-// In Node.js, we ensure "window" and "document" variables to be visible.
-if (typeof window === 'undefined' && typeof require !== 'undefined') {
-    try {
-        // Two cases here:
-        // For Browserify, we don't want require('jsdom') anywhere
-        // so that heavyweight library isn't sent to the browser.
-        // We also don't want "var window" to be evaluated in the browser.
-        // However, "var window" is necessary on Node.js to avoid polluting 
-        // the global namespace.
-        // This is the only combination that satisfies all these constraints.
-        eval("var window = require('jsdom').jsdom().createWindow();");
-    } catch (e) {}
-}
-if (typeof window !== 'undefined' && typeof document === 'undefined') {
-    eval("var document = window.document;");
-}
+var eve, Raphael = 'foo';
 // END BROWSERIFY MOD
 
 // ┌────────────────────────────────────────────────────────────────────┐ \\
@@ -282,10 +264,22 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
         formatrg = /\{(\d+)\}/g,
         proto = "prototype",
         has = "hasOwnProperty",
-        g = {
-            doc: document,
-            win: window
-        },
+        g = (function() {
+            var _g = {};
+            if (typeof window !== 'undefined') {
+                _g.win = window;
+                _g.doc = document;
+            }
+            else if (typeof require !== 'undefined') {
+                // Keep browserify from including jsdom.
+                eval("_g.doc = require('jsdom').jsdom()");
+                _g.win = _g.doc.createWindow();
+                _g.win.document = _g.doc;
+                _g.doc.implementation.addFeature(
+            "http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1")
+            }
+            return _g;
+        })(),
         oldRaphael = {
             was: Object.prototype[has].call(g.win, "Raphael"),
             is: g.win.Raphael
@@ -473,6 +467,7 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
 
     R._g = g;
     
+    
     R.type = (g.win.SVGAngle || g.doc.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ? "SVG" : "VML");
     if (R.type == "VML") {
         var d = g.doc.createElement("div"),
@@ -485,7 +480,7 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
         }
         d = null;
     }
-    
+
     
     R.svg = !(R.vml = R.type == "VML");
     R._Paper = Paper;
@@ -2234,14 +2229,19 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
     })(Matrix.prototype);
 
     // WebKit rendering bug workaround method
-    var version = navigator.userAgent.match(/Version\/(.*?)\s/) || navigator.userAgent.match(/Chrome\/(\d+)/);
-    if ((navigator.vendor == "Apple Computer, Inc.") && (version && version[1] < 4 || navigator.platform.slice(0, 2) == "iP") ||
-        (navigator.vendor == "Google Inc." && version && version[1] < 8)) {
-        
-        paperproto.safari = function () {
-            var rect = this.rect(-99, -99, this.width + 99, this.height + 99).attr({stroke: "none"});
-            setTimeout(function () {rect.remove();});
-        };
+    // BROWSERIFY MOD: don't assume navigator exists
+    if (typeof navigator !== 'undefined') {
+        var version = navigator.userAgent.match(/Version\/(.*?)\s/) || navigator.userAgent.match(/Chrome\/(\d+)/);
+        if ((navigator.vendor == "Apple Computer, Inc.") && (version && version[1] < 4 || navigator.platform.slice(0, 2) == "iP") ||
+            (navigator.vendor == "Google Inc." && version && version[1] < 8)) {
+            
+            paperproto.safari = function () {
+                var rect = this.rect(-99, -99, this.width + 99, this.height + 99).attr({stroke: "none"});
+                setTimeout(function () {rect.remove();});
+            };
+        } else {
+            paperproto.safari = fun;
+        }
     } else {
         paperproto.safari = fun;
     }
@@ -3746,6 +3746,7 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
     };
     
     R.st = setproto;
+    // BROWSERIFY MOD: use R._g.doc instead of document
     // Firefox <3.6 fix: http://webreflection.blogspot.com/2009/11/195-chars-to-help-lazy-loading.html
     (function (doc, loaded, f) {
         if (doc.readyState == null && doc.addEventListener){
@@ -3759,15 +3760,19 @@ if (typeof window !== 'undefined' && typeof document === 'undefined') {
             (/in/).test(doc.readyState) ? setTimeout(isLoaded, 9) : R.eve("raphael.DOMload");
         }
         isLoaded();
-    })(document, "DOMContentLoaded");
+    })(R._g.doc, "DOMContentLoaded");
 
-    oldRaphael.was ? (g.win.Raphael = R) : (Raphael = R);
+    // BROWSERIFY MOD: always set file-scope Raphael = R
+    // oldRaphael.was ? (g.win.Raphael = R) : (Raphael = R);
+    // if (oldRaphael.was) g.win.Raphael = R;
+    Raphael = R;
     
     eve.on("raphael.DOMload", function () {
         loaded = true;
     });
 })();
 
+// console.log(Raphael);
 
 // ┌─────────────────────────────────────────────────────────────────────┐ \\
 // │ Raphaël - JavaScript Vector Library                                 │ \\
