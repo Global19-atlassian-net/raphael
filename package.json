@@ -4,10 +4,10 @@
   "version": "2.1.0",
   "main": "raphael-browserify.js",
   "dependencies": {
-    "jsdom": "0.2.x"
+    "jsdom": "13.2.0"
   },
   "devDependencies": {
-    "browserify": "1.12.x"
+    "browserify": "13.3.0"
   },
   "scripts": {
     "test": "node test-node.js"
